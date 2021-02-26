@@ -12,6 +12,12 @@ platform for OpenStreetMap contributors, where they can improve the map one
 small issue at a time.
 
 
+## UPDATE: All done! The challenge was completed on 2021-01-01.
+
+Check out the follow-up project
+[Maproulette: Residential landuse areas without any buildings](https://github.com/hfs/landuse_without_buildings)!
+
+
 ## Data sources
 
 1. German Census 2011:
