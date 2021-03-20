@@ -14,8 +14,10 @@ small issue at a time.
 
 ## UPDATE: All done! The challenge was completed on 2021-01-01.
 
-Check out the follow-up project
-[Maproulette: Residential landuse areas without any buildings](https://github.com/hfs/landuse_without_buildings)!
+Check out the follow-up projects:
+
+* [Maproulette: Residential landuse areas without any buildings](https://github.com/hfs/landuse_without_buildings)
+* [Maproulette: Buildings without landuse](https://github.com/hfs/buildings_without_landuse)
 
 
 ## Data sources
