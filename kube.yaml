@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: "2024-07-08T00:00:00Z"
+  labels:
+    app: unmapped-census
+  name: unmapped-census
+spec:
+  containers:
+  - name: postgres
+    image: docker.io/postgis/postgis:16-3.4
+    args:
+    - postgres
+    - -c
+    - logging_collector=true
+    env:
+      - name: POSTGRES_PASSWORD
+        value: postgres
+    securityContext:
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+    volumeMounts:
+    - mountPath: /var/lib/postgresql/data
+      name: postgresql-data
+  - name: run
+    image: unmapped_census:latest
+    command:
+    - ./run.sh
+    securityContext:
+      capabilities:
+        drop:
+        - CAP_MKNOD
+        - CAP_NET_RAW
+        - CAP_AUDIT_WRITE
+    volumeMounts:
+    - mountPath: /app
+      name: app
+  volumes:
+  - hostPath:
+      path: ./data/postgres
+      type: Directory
+    name: postgresql-data
+  - hostPath:
+      path: .
+      type: Directory
+    name: app
+  restartPolicy: Never

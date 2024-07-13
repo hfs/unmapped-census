@@ -1,35 +1,56 @@
--- Script to intersect the census squares with OSM landuse and building
--- polygons. Delete all census cells which are touched by residential landuse
--- or buildings.
+\echo >>> Calculate census square for one point of each building
 
--- First quick pass: Delete census cells whose centroid is contained in
--- landuse polygons. This already eliminates 2/3 of cells.
-\echo >>> Add centroid geometry column
-ALTER TABLE census_germany ADD COLUMN geom geometry(Point, 3035);
-UPDATE census_germany SET geom = ST_SetSRID(st_makepoint(x, y), 3035);
-CREATE INDEX ON census_germany USING GIST(geom);
-
-\echo >>> First pass: Delete census cells which are covered by landuse=*
-DELETE FROM census_germany c USING landuse l
-WHERE ST_Contains(l.geom, c.geom)
+DROP TABLE IF EXISTS building_point;
+CREATE TABLE building_point AS
+SELECT
+    area_id,
+    CAST(floor(ST_X(ST_PointN(ST_Exteriorring(geom), 1)) / 100) * 100 + 50 AS int8) AS x,
+    CAST(floor(ST_Y(ST_PointN(ST_Exteriorring(geom), 1)) / 100) * 100 + 50 AS int8) AS y,
+    geom
+FROM building
 ;
 
-\echo >>> Add census square geometries, for more precision
-ALTER TABLE census_germany DROP COLUMN geom;
+\echo >>> Pass one: DELETE ALL cells touched BY buildings
+
+-- Tried with indexes on x and y but they weren't used anyway
+DELETE FROM census_germany c
+USING building_point b
+WHERE
+    c.x = b.x AND
+    c.y = b.y
+;
+
+
+\echo >>> Add census square geometries
+
 ALTER TABLE census_germany ADD COLUMN geom geometry(Polygon, 3035);
--- Census uses center point as ID
-UPDATE census_germany SET geom = ST_MakeEnvelope(x - 50, y - 50, x + 50, y + 50, 3035);
+-- Census uses center point as x, y
+UPDATE census_germany SET geom = ST_MakeEnvelope(x - 50, y - 50, x + 50, y + 50,
+    3035);
 CREATE INDEX ON census_germany USING GIST(geom);
 
-\echo >>> Second pass: Intersect squares with landuse polygons
--- Delete another 700000 of 1000000
-DELETE FROM census_germany c USING landuse l
-WHERE ST_Intersects(l.geom, c.geom)
-;
+\echo >>> Pass two: DELETE ALL cells intersecting WITH landuse areas
 
-\echo >>> Third pass: Delete all cells intersecting with buildings
-DELETE FROM census_germany c USING building b
-WHERE ST_Intersects(b.geom, c.geom)
+DELETE FROM census_germany c
+USING landuse l
+WHERE ST_Intersects(c.geom, l.geom)
+;
+VACUUM ANALYZE census_germany;
+VACUUM ANALYZE building;
+
+\echo >>> ADD spatial INDEX ON buildings
+
+CREATE INDEX ON building USING GIST(geom);
+
+\echo >>> Pass three: Delete all cells intersecting with buildings
+
+DELETE FROM census_germany c
+USING building b
+WHERE
+    -- I don't understand why, but without this line, the query is planned
+    -- badly (Seq Scan on buildings first) and takes forever
+    c.geom && b.geom
+    AND ST_Intersects(c.geom, b.geom)
 ;
 
 \echo >>> Merge clusters of touching census cells into (multi)polygons
@@ -50,11 +71,6 @@ FROM
     ) c
 GROUP BY
     cluster_id
-HAVING
-    -- Filter to get the most relevant cases.
-    -- We have more than enough cases even with the filter.
-    SUM(population) >= 12
-    AND ST_Area(ST_Union(geom)) > 100*100
 ;
 
 

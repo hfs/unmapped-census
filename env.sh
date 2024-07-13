@@ -1,4 +1,6 @@
-export PGHOST=census_postgres
+export REGION=germany
+
+export PGHOST=postgres
 export PGPORT=5432
 export PGUSER=postgres
 export PGPASSWORD=postgres

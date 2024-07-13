@@ -1,12 +1,14 @@
 #!/bin/bash -e
+set -o pipefail
+
+source env.sh
 
 cd data
-echo ">>> Downloading Census 2011 data"
-wget 'https://www.zensus2011.de/SharedDocs/Downloads/DE/Pressemitteilung/DemografischeGrunddaten/csv_Bevoelkerung_100m_Gitter.zip?__blob=publicationFile&v=3' \
+echo ">>> Downloading Census 2022 data"
+wget 'https://www.zensus2022.de/static/Zensus_Veroeffentlichung/Zensus2022_Bevoelkerungszahl.zip' \
     --timestamping
-ln -sf csv_Bevoelkerung_100m_Gitter.zip\?* csv_Bevoelkerung_100m_Gitter.zip
-unzip -o csv_Bevoelkerung_100m_Gitter.zip
+unzip -o Zensus2022_Bevoelkerungszahl.zip
 
 echo ">>> Downloading OpenStreetMap dump for Germany"
-wget 'http://download.geofabrik.de/europe/germany-latest.osm.pbf' \
+wget "http://download.geofabrik.de/europe/$REGION-latest.osm.pbf" \
     --timestamping
